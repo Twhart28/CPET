@@ -547,6 +547,8 @@ VT_EDIT_LEGEND_OPTIONS: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
+VT_EDIT_VLINE_YRANGE = (-100.0, 100.0)
+
 # ----------------------------
 # Threshold detection table (Test | VT1 | VT2)
 # ----------------------------
@@ -636,7 +638,7 @@ def threshold_detection_table(vt_source=None, highlight=None):
     vt1_vo2, vt1_tmin, vt1_rer, vt1_pct, vt1_conf = vt_vals(vt1)
     vt2_vo2, vt2_tmin, vt2_rer, vt2_pct, vt2_conf = vt_vals(vt2)
 
-    tests_left = ["V-Slope", "VE/VO₂ minimum", "PetO₂ minimum", "Average"]
+    tests_left = ["V-Slope", "VE/VO₂ , VE/VCO₂", "PetO₂ , PetCO₂", "Average"]
     tests_right = ["V-Slope", "VE/VCO₂ rise (start)", "PetCO₂ drop (start)", "Average"]
 
     def _fmt2(x):
@@ -1487,8 +1489,8 @@ def compute_vt_context(analysis: dict, overrides: dict | None = None):
 
     vt1_rows = {
         "V-Slope": _mk_row_from_vo2(vt_vslope.get("vt1"), t, vo2_L, rer_L, vo2_peak),
-        "VE/VO₂ minimum": _mk_row_from_time(vt_veeq.get("vt1"), t, vo2_L, rer_L, vo2_peak),
-        "PetO₂ minimum": _mk_row_from_time(vt_pet.get("vt1"), t, vo2_L, rer_L, vo2_peak),
+        "VE/VO₂ , VE/VCO₂": _mk_row_from_time(vt_veeq.get("vt1"), t, vo2_L, rer_L, vo2_peak),
+        "PetO₂ , PetCO₂": _mk_row_from_time(vt_pet.get("vt1"), t, vo2_L, rer_L, vo2_peak),
     }
     _vt1_mean_vo2 = _safe_mean([row["vo2"] for row in vt1_rows.values() if row.get("vo2") is not None])
     vt1_rows["Average"] = _mk_row_from_vo2(_vt1_mean_vo2, t, vo2_L, rer_L, vo2_peak)
@@ -2215,20 +2217,9 @@ def _build_edit_figure(
                 )
                 meta["segments"].append(len(shapes) - 1)
 
-        vt_bounds = _finite_bounds([vco2] + seg_arrays_y, extra_frac=0.05)
-        if vt_bounds:
-            vt_y0, vt_y1 = vt_bounds
-        else:
-            vt_y0, vt_y1 = 0.0, 1.0
-        if vt_y0 == vt_y1:
-            pad = abs(vt_y0) * 0.05
-            if pad == 0:
-                pad = 1.0
-            vt_y0 -= pad
-            vt_y1 += pad
-
         vt1 = graph_state.get("current", {}).get("vt1")
         vt2 = graph_state.get("current", {}).get("vt2")
+        line_y0, line_y1 = VT_EDIT_VLINE_YRANGE
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
@@ -2236,8 +2227,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_PURPLE, dash="dot", width=2),
                 )
             )
@@ -2249,8 +2240,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_RED, dash="dot", width=2),
                 )
             )
@@ -2327,18 +2318,7 @@ def _build_edit_figure(
                 )
             )
 
-        vt_bounds = _finite_bounds([ve_vo2, ve_vo2_L, ve_vco2, ve_vco2_L], extra_frac=0.05)
-        if vt_bounds:
-            vt_y0, vt_y1 = vt_bounds
-        else:
-            vt_y0, vt_y1 = 0.0, 1.0
-        if vt_y0 == vt_y1:
-            pad = abs(vt_y0) * 0.05
-            if pad == 0:
-                pad = 1.0
-            vt_y0 -= pad
-            vt_y1 += pad
-
+        line_y0, line_y1 = VT_EDIT_VLINE_YRANGE
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
@@ -2346,8 +2326,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_PURPLE, dash="dot", width=2),
                 )
             )
@@ -2360,8 +2340,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_RED, dash="dot", width=2),
                 )
             )
@@ -2439,18 +2419,7 @@ def _build_edit_figure(
             )
 
 
-        vt_bounds = _finite_bounds([peto2n, petco2n, peto2n_L, petco2n_L], extra_frac=0.05)
-        if vt_bounds:
-            vt_y0, vt_y1 = vt_bounds
-        else:
-            vt_y0, vt_y1 = 0.0, 1.0
-        if vt_y0 == vt_y1:
-            pad = abs(vt_y0) * 0.05
-            if pad == 0:
-                pad = 1.0
-            vt_y0 -= pad
-            vt_y1 += pad
-
+        line_y0, line_y1 = VT_EDIT_VLINE_YRANGE
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
@@ -2458,8 +2427,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_PURPLE, dash="dot", width=2),
                 )
             )
@@ -2472,8 +2441,8 @@ def _build_edit_figure(
                     type="line",
                     x0=float(x),
                     x1=float(x),
-                    y0=vt_y0,
-                    y1=vt_y1,
+                    y0=line_y0,
+                    y1=line_y1,
                     line=dict(color=COL_RED, dash="dot", width=2),
                 )
             )
@@ -2507,8 +2476,8 @@ EDIT_GRAPH_LABELS = {
 }
 EDIT_HIGHLIGHT = {
     "vslope": {"vt1": ["V-Slope"], "vt2": ["V-Slope"]},
-    "veeq": {"vt1": ["VE/VO₂ minimum"], "vt2": ["VE/VCO₂ rise (start)"]},
-    "pet": {"vt1": ["PetO₂ minimum"], "vt2": ["PetCO₂ drop (start)"]},
+    "veeq": {"vt1": ["VE/VO₂ , VE/VCO₂"], "vt2": ["VE/VCO₂ rise (start)"]},
+    "pet": {"vt1": ["PetO₂ , PetCO₂"], "vt2": ["PetCO₂ drop (start)"]},
 }
 
 
