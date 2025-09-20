@@ -1761,10 +1761,10 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
 
     layout(fig_veeq, "Time (min)", "Ratio")
     veeq_x_data = [t]
-    if np.isfinite(vt1_ve_eq):
-        veeq_x_data.append([vt1_ve_eq])
-    if np.isfinite(vt2_ve_eq):
-        veeq_x_data.append([vt2_ve_eq])
+    if np.isfinite(vt1_vevo2_t):
+        veeq_x_data.append([vt1_vevo2_t])
+    if np.isfinite(vt2_vevco2_t):
+        veeq_x_data.append([vt2_vevco2_t])
     _apply_axis_bounds(
         fig_veeq,
         x_arrays=veeq_x_data,
@@ -2215,18 +2215,44 @@ def _build_edit_figure(
                 )
                 meta["segments"].append(len(shapes) - 1)
 
+        vt_bounds = _finite_bounds([vco2] + seg_arrays_y, extra_frac=0.05)
+        if vt_bounds:
+            vt_y0, vt_y1 = vt_bounds
+        else:
+            vt_y0, vt_y1 = 0.0, 1.0
+        if vt_y0 == vt_y1:
+            pad = abs(vt_y0) * 0.05
+            if pad == 0:
+                pad = 1.0
+            vt_y0 -= pad
+            vt_y1 += pad
+
         vt1 = graph_state.get("current", {}).get("vt1")
         vt2 = graph_state.get("current", {}).get("vt2")
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_PURPLE, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_PURPLE, dash="dot", width=2),
+                )
             )
             meta["vt1"] = len(shapes) - 1
         if vt2 is not None and "vt2" in legend_set:
             x = float(vt2)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_RED, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_RED, dash="dot", width=2),
+                )
             )
             meta["vt2"] = len(shapes) - 1
 
@@ -2301,17 +2327,43 @@ def _build_edit_figure(
                 )
             )
 
+        vt_bounds = _finite_bounds([ve_vo2, ve_vo2_L, ve_vco2, ve_vco2_L], extra_frac=0.05)
+        if vt_bounds:
+            vt_y0, vt_y1 = vt_bounds
+        else:
+            vt_y0, vt_y1 = 0.0, 1.0
+        if vt_y0 == vt_y1:
+            pad = abs(vt_y0) * 0.05
+            if pad == 0:
+                pad = 1.0
+            vt_y0 -= pad
+            vt_y1 += pad
+
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_PURPLE, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_PURPLE, dash="dot", width=2),
+                )
             )
             meta["vt1"] = idx
             idx += 1
         if vt2 is not None and "vt2" in legend_set:
             x = float(vt2)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_RED, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_RED, dash="dot", width=2),
+                )
             )
             meta["vt2"] = idx
 
@@ -2386,17 +2438,44 @@ def _build_edit_figure(
                 )
             )
 
+
+        vt_bounds = _finite_bounds([peto2n, petco2n, peto2n_L, petco2n_L], extra_frac=0.05)
+        if vt_bounds:
+            vt_y0, vt_y1 = vt_bounds
+        else:
+            vt_y0, vt_y1 = 0.0, 1.0
+        if vt_y0 == vt_y1:
+            pad = abs(vt_y0) * 0.05
+            if pad == 0:
+                pad = 1.0
+            vt_y0 -= pad
+            vt_y1 += pad
+
         if vt1 is not None and "vt1" in legend_set:
             x = float(vt1)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_PURPLE, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_PURPLE, dash="dot", width=2),
+                )
             )
             meta["vt1"] = idx
             idx += 1
         if vt2 is not None and "vt2" in legend_set:
             x = float(vt2)
             shapes.append(
-                dict( type="line", x0=float(x), x1=float(x), xref="x", yref="paper",  y0=0, y1=1, line=dict(color=COL_RED, dash="dot", width=2))
+                dict(
+                    type="line",
+                    x0=float(x),
+                    x1=float(x),
+                    y0=vt_y0,
+                    y1=vt_y1,
+                    line=dict(color=COL_RED, dash="dot", width=2),
+                )
             )
             meta["vt2"] = idx
 
