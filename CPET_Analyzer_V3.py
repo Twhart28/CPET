@@ -20,6 +20,58 @@ from pathlib import Path
 import os
 import math
 
+# --- Plot helpers ---
+def _finite_bounds(arrays, extra_frac=0.25):
+    """Return (min, max) bounds with an added fractional margin."""
+    if arrays is None:
+        return None
+
+    finite_values = []
+    for arr in arrays:
+        if arr is None:
+            continue
+        try:
+            data = np.asarray(arr, dtype=float).ravel()
+        except Exception:
+            continue
+        if data.size == 0:
+            continue
+        data = data[np.isfinite(data)]
+        if data.size:
+            finite_values.append(data)
+
+    if not finite_values:
+        return None
+
+    data = np.concatenate(finite_values)
+    if data.size == 0:
+        return None
+
+    vmin = float(np.min(data))
+    vmax = float(np.max(data))
+    if not (np.isfinite(vmin) and np.isfinite(vmax)):
+        return None
+
+    if vmax == vmin:
+        padding = abs(vmax) * extra_frac
+        if padding == 0:
+            padding = extra_frac
+    else:
+        padding = (vmax - vmin) * extra_frac
+
+    return vmin - padding, vmax + padding
+
+
+def _apply_axis_bounds(fig, x_arrays=None, y_arrays=None, extra_frac=0.25):
+    x_bounds = _finite_bounds(x_arrays or [], extra_frac=extra_frac)
+    if x_bounds:
+        fig.update_xaxes(minallowed=x_bounds[0], maxallowed=x_bounds[1])
+
+    y_bounds = _finite_bounds(y_arrays or [], extra_frac=extra_frac)
+    if y_bounds:
+        fig.update_yaxes(minallowed=y_bounds[0], maxallowed=y_bounds[1])
+
+
 # --- Colors to match VT_Testing.pyw ---
 COL_BLUE        = "#377EB7"
 COL_ORANGE      = "#FF7F0E"
@@ -1520,6 +1572,8 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
     )
 
     segs = context["vslope_segments"]
+    seg_x = []
+    seg_y = []
     if segs:
         for i, ((x0, y0), (x1, y1)) in enumerate(segs):
             n = 60
@@ -1529,6 +1583,9 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
             else:
                 xp = np.linspace(x0, x1, n)
                 yp = y0 + (y1 - y0) * (xp - x0) / (x1 - x0)
+
+            seg_x.append([x0, x1])
+            seg_y.append([y0, y1])
 
             fig_vslope.add_trace(
                 go.Scatter(
@@ -1568,6 +1625,12 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
         )
 
     layout(fig_vslope, "VO₂ (L·min⁻¹)", "VCO₂ (L·min⁻¹)")
+    vslope_x_data = [vo2] + seg_x
+    if np.isfinite(vt1_vslope):
+        vslope_x_data.append([vt1_vslope])
+    if np.isfinite(vt2_vslope):
+        vslope_x_data.append([vt2_vslope])
+    _apply_axis_bounds(fig_vslope, x_arrays=vslope_x_data, y_arrays=[vco2] + seg_y)
 
     fig_vo2 = go.Figure()
     fig_vo2.add_trace(
@@ -1618,6 +1681,12 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
         )
 
     layout(fig_vo2, "Time (min)", "VO₂ (L·min⁻¹)")
+    vo2_x_data = [t]
+    if np.isfinite(vt1_t_avg):
+        vo2_x_data.append([vt1_t_avg])
+    if np.isfinite(vt2_t_avg):
+        vo2_x_data.append([vt2_t_avg])
+    _apply_axis_bounds(fig_vo2, x_arrays=vo2_x_data, y_arrays=[vo2, vo2_L])
 
     fig_veeq = go.Figure()
     fig_veeq.add_trace(
@@ -1691,6 +1760,16 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
         )
 
     layout(fig_veeq, "Time (min)", "Ratio")
+    veeq_x_data = [t]
+    if np.isfinite(vt1_ve_eq):
+        veeq_x_data.append([vt1_ve_eq])
+    if np.isfinite(vt2_ve_eq):
+        veeq_x_data.append([vt2_ve_eq])
+    _apply_axis_bounds(
+        fig_veeq,
+        x_arrays=veeq_x_data,
+        y_arrays=[ve_vo2, ve_vo2_L, ve_vco2, ve_vco2_L],
+    )
 
     fig_pet = go.Figure()
     fig_pet.add_trace(
@@ -1766,6 +1845,16 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
         )
 
     layout(fig_pet, "Time (min)", "Normalized (÷ series mean)")
+    pet_x_data = [t]
+    if np.isfinite(vt1_peto2_t):
+        pet_x_data.append([vt1_peto2_t])
+    if np.isfinite(vt2_petco2_t):
+        pet_x_data.append([vt2_petco2_t])
+    _apply_axis_bounds(
+        fig_pet,
+        x_arrays=pet_x_data,
+        y_arrays=[peto2n, petco2n, peto2n_L, petco2n_L],
+    )
 
     fig_rer = go.Figure()
     fig_rer.add_trace(
@@ -1817,6 +1906,12 @@ def build_figures_from_file(path: str, overrides: dict | None = None):
         )
 
     layout(fig_rer, "Time (min)", "RER")
+    rer_x_data = [t]
+    if np.isfinite(vt1_t_avg):
+        rer_x_data.append([vt1_t_avg])
+    if np.isfinite(vt2_t_avg):
+        rer_x_data.append([vt2_t_avg])
+    _apply_axis_bounds(fig_rer, x_arrays=rer_x_data, y_arrays=[rer, rer_L])
 
     return (
         {
@@ -2108,9 +2203,13 @@ def _build_edit_figure(
 
         shapes = []
         segments = _segments_from_payload(graph_state.get("current", {}).get("segments"))
+        seg_arrays_x = []
+        seg_arrays_y = []
         if "slope" in legend_set:
             for seg in segments:
                 (x0, y0), (x1, y1) = seg
+                seg_arrays_x.append([x0, x1])
+                seg_arrays_y.append([y0, y1])
                 shapes.append(
                     dict(type="line", x0=x0, y0=y0, x1=x1, y1=y1, line=dict(color=COL_GREEN, width=3))
                 )
@@ -2135,6 +2234,12 @@ def _build_edit_figure(
         fig.update_xaxes(title="VO₂ (L·min⁻¹)")
         fig.update_yaxes(title="VCO₂ (L·min⁻¹)")
         fig.update_layout(showlegend=False)
+        x_data = [vo2] + seg_arrays_x
+        if vt1 is not None:
+            x_data.append([vt1])
+        if vt2 is not None:
+            x_data.append([vt2])
+        _apply_axis_bounds(fig, x_arrays=x_data, y_arrays=[vco2] + seg_arrays_y)
 
     elif graph_key == "veeq":
         t = analysis["t"]
@@ -2214,6 +2319,12 @@ def _build_edit_figure(
         fig.update_xaxes(title="Time (min)")
         fig.update_yaxes(title="Ratio")
         fig.update_layout(showlegend=False)
+        x_data = [t]
+        if vt1 is not None:
+            x_data.append([vt1])
+        if vt2 is not None:
+            x_data.append([vt2])
+        _apply_axis_bounds(fig, x_arrays=x_data, y_arrays=[ve_vo2, ve_vo2_L, ve_vco2, ve_vco2_L])
 
     elif graph_key == "pet":
         t = analysis["t"]
@@ -2293,6 +2404,12 @@ def _build_edit_figure(
         fig.update_xaxes(title="Time (min)")
         fig.update_yaxes(title="Normalized (÷ series mean)")
         fig.update_layout(showlegend=False)
+        x_data = [t]
+        if vt1 is not None:
+            x_data.append([vt1])
+        if vt2 is not None:
+            x_data.append([vt2])
+        _apply_axis_bounds(fig, x_arrays=x_data, y_arrays=[peto2n, petco2n, peto2n_L, petco2n_L])
 
     fig.update_layout(
         margin=dict(l=12, r=12, t=8, b=12),
